@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crop Recommender</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --soil: #4a7c59;
+    --soil-light: #e8f2eb;
+    --soil-mid: #b8d4bf;
+    --gold: #c9922a;
+    --gold-light: #fdf3e3;
+    --text: #1a1a18;
+    --text-muted: #6b6b5e;
+    --text-faint: #a8a89a;
+    --bg: #f7f5f0;
+    --card: #ffffff;
+    --border: #e0ddd5;
+    --border-strong: #c8c4b8;
+    --danger: #c0392b;
+    --rank1: #4a7c59;
+    --rank2: #5d8f6b;
+    --rank3: #7aaa88;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--text);
+    padding: 28px 48px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: #fff;
+    letter-spacing: -0.3px;
+  }
+  header span {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--soil-mid);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    min-height: calc(100vh - 74px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    padding: 32px 28px 40px;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+    margin-top: 28px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    letter-spacing: .01em;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    outline: none;
+    margin: 8px 0 4px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--soil);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    transition: transform .15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  .slider-row { display: flex; align-items: center; gap: 10px; }
+  .slider-row input { flex: 1; }
+  .slider-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--soil);
+    min-width: 52px;
+    text-align: right;
+  }
+
+  select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b5e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    outline: none;
+    transition: border-color .15s;
+  }
+  select:focus { border-color: var(--soil); }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--soil); color: var(--soil); }
+  .chip.active {
+    background: var(--soil);
+    border-color: var(--soil);
+    color: white;
+  }
+
+  .run-btn {
+    width: 100%;
+    margin-top: 28px;
+    padding: 14px;
+    background: var(--soil);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: .02em;
+    transition: background .2s, transform .1s;
+    position: relative;
+    overflow: hidden;
+  }
+  .run-btn:hover { background: #3d6b4a; }
+  .run-btn:active { transform: scale(0.99); }
+  .run-btn.loading { pointer-events: none; opacity: .7; }
+
+  /* ── MAIN PANEL ── */
+  .main {
+    padding: 40px 48px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--text-faint);
+  }
+  .empty-state svg { opacity: .3; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── RESULTS ── */
+  .results-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .results-header h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--text);
+  }
+  .results-header .meta {
+    font-size: 12px;
+    color: var(--text-faint);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .results-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .crop-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    transition: box-shadow .2s, transform .2s;
+    animation: slideIn .3s ease both;
+  }
+  .crop-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,.07);
+    transform: translateY(-1px);
+  }
+  .crop-card.rank-1 {
+    border-color: var(--soil);
+    border-width: 1.5px;
+    background: linear-gradient(135deg, #fff 0%, var(--soil-light) 100%);
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .crop-card:nth-child(1) { animation-delay: .05s; }
+  .crop-card:nth-child(2) { animation-delay: .10s; }
+  .crop-card:nth-child(3) { animation-delay: .15s; }
+  .crop-card:nth-child(4) { animation-delay: .20s; }
+  .crop-card:nth-child(5) { animation-delay: .25s; }
+  .crop-card:nth-child(6) { animation-delay: .30s; }
+  .crop-card:nth-child(7) { animation-delay: .35s; }
+
+  .rank-badge {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--bg);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .rank-1 .rank-badge {
+    background: var(--soil);
+    color: white;
+    border-color: var(--soil);
+    font-size: 14px;
+  }
+
+  .crop-info { min-width: 0; }
+  .crop-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .best-tag {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    background: var(--soil);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .hist-tag {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    background: var(--gold-light);
+    color: var(--gold);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #f0d89a;
+  }
+  .model-tag {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    background: var(--soil-light);
+    color: var(--soil);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--soil-mid);
+  }
+
+  .suit-bar-wrap {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .suit-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--soil-mid);
+    transition: width .6s cubic-bezier(.4,0,.2,1);
+  }
+  .rank-1 .suit-bar { background: var(--soil); }
+
+  .crop-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .tag.season-good { color: var(--soil); border-color: var(--soil-mid); background: var(--soil-light); }
+  .tag.season-partial { color: var(--gold); border-color: #f0d89a; background: var(--gold-light); }
+  .tag.season-off { color: var(--danger); border-color: #f5b7b1; background: #fef9f9; }
+
+  .crop-right { text-align: right; flex-shrink: 0; }
+  .suit-pct {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--soil);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .rank-1 .suit-pct { font-size: 26px; }
+  .yield-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .footnote {
+    margin-top: 20px;
+    padding: 12px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 11px;
+    color: var(--text-faint);
+    line-height: 1.6;
+  }
+  .footnote b { color: var(--text-muted); font-weight: 500; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    header { padding: 20px 24px; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    .main { padding: 28px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Crop Recommender</h1>
+  <span>ML-powered · Tripura districts</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+    <div id="status-dot" style="width:8px;height:8px;border-radius:50%;background:#c9922a;transition:background .4s"></div>
+    <span id="status-label" style="font-family:'DM Mono',monospace;font-size:11px;color:#888;letter-spacing:.05em">Checking backend…</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR / INPUTS ── -->
+  <aside class="sidebar">
+
+    <div class="section-label">Weather conditions</div>
+
+    <div class="field">
+      <label>Mean temperature</label>
+      <div class="slider-row">
+        <input type="range" id="temp" min="23.7" max="25.6" step="0.1" value="24.5">
+        <span class="slider-val" id="tempv">24.5 °C</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Annual rainfall</label>
+      <div class="slider-row">
+        <input type="range" id="rain" min="1219" max="3451" step="10" value="1800">
+        <span class="slider-val" id="rainv">1800 mm</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Max humidity</label>
+      <div class="slider-row">
+        <input type="range" id="hummax" min="91" max="99" step="0.5" value="95">
+        <span class="slider-val" id="hummaxv">95 %</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Min humidity</label>
+      <div class="slider-row">
+        <input type="range" id="hummin" min="49" max="65" step="0.5" value="58">
+        <span class="slider-val" id="humminv">58 %</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Solar radiation</label>
+      <div class="slider-row">
+        <input type="range" id="solar" min="5316" max="6473" step="10" value="5800">
+        <span class="slider-val" id="solarv">5800 MJ/m²</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Rainy days / year</label>
+      <div class="slider-row">
+        <input type="range" id="rainy" min="136" max="217" step="1" value="170">
+        <span class="slider-val" id="rainyv">170 days</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Evapotranspiration</label>
+      <div class="slider-row">
+        <input type="range" id="et" min="1094" max="1433" step="5" value="1240">
+        <span class="slider-val" id="etv">1240 mm</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Max windspeed</label>
+      <div class="slider-row">
+        <input type="range" id="wind" min="9.3" max="13.5" step="0.1" value="11.2">
+        <span class="slider-val" id="windv">11.2 km/h</span>
+      </div>
+    </div>
+
+    <div class="section-label">Farm conditions</div>
+
+    <div class="field">
+      <label>Fertilizer</label>
+      <div class="slider-row">
+        <input type="range" id="fert" min="24" max="219" step="1" value="70">
+        <span class="slider-val" id="fertv">70 kg/ha</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Soil type</label>
+      <div class="chips" id="soil-chips">
+        <div class="chip active" data-val="Alluvial">Alluvial</div>
+        <div class="chip" data-val="Red Laterite">Red Laterite</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Irrigation</label>
+      <div class="chips" id="irr-chips">
+        <div class="chip active" data-val="Rainfed">Rainfed</div>
+        <div class="chip" data-val="Canal">Canal</div>
+        <div class="chip" data-val="Drip">Drip</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Season</label>
+      <div class="chips" id="season-chips">
+        <div class="chip active" data-val="Kharif">Kharif</div>
+        <div class="chip" data-val="Rabi">Rabi</div>
+        <div class="chip" data-val="Whole Year">Whole Year</div>
+        <div class="chip" data-val="Summer">Summer</div>
+        <div class="chip" data-val="Autumn">Autumn</div>
+        <div class="chip" data-val="Winter">Winter</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Pest / disease incidence</label>
+      <div class="chips" id="pest-chips">
+        <div class="chip active" data-val="Low">Low</div>
+        <div class="chip" data-val="Medium">Medium</div>
+        <div class="chip" data-val="High">High</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>District</label>
+      <select id="district">
+        <option>Dhalai</option>
+        <option>Gomati</option>
+        <option>Khowai</option>
+        <option>North tripura</option>
+        <option>Sepahijala</option>
+        <option>South tripura</option>
+        <option>Unakoti</option>
+        <option>West tripura</option>
+      </select>
+    </div>
+
+    <button class="run-btn" onclick="runRecommender()">Get Recommendations</button>
+
+  </aside>
+
+  <!-- ── MAIN / RESULTS ── -->
+  <main class="main" id="main-panel">
+    <div class="empty-state" id="empty-state">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="22" stroke="#4a7c59" stroke-width="2"/>
+        <path d="M24 12 C18 18 14 26 20 32 C24 36 28 34 30 30 C32 26 28 20 24 12Z" fill="#4a7c59" opacity=".4"/>
+        <path d="M24 12 C30 18 34 26 28 32" stroke="#4a7c59" stroke-width="1.5" fill="none"/>
+        <line x1="24" y1="36" x2="24" y2="40" stroke="#4a7c59" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <p>Set your conditions and click <strong>Get Recommendations</strong></p>
+    </div>
+    <div id="results-container" style="display:none">
+      <div class="results-header">
+        <h2 id="results-title">Top crop matches</h2>
+        <span class="meta" id="results-meta"></span>
+      </div>
+      <div class="results-grid" id="results-grid"></div>
+      <div class="footnote">
+        <b>Suitability %</b> — how closely your conditions match where each crop historically thrives (Gaussian profile match on weather + soil + season + pest penalty). &nbsp;
+        <b>Est. Yield</b> — historical dataset average. Crops with ≥ 60 training rows can be upgraded to XGBoost model predictions by connecting the Python backend.
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+// ── EMBEDDED CROP PROFILES ────────────────────────────────────────────────────
+const PROFILES = {"Arhar/Tur":{"Temp_Mean_C":{"mean":24.585,"std":0.369},"Annual_Rainfall_mm":{"mean":1958.9,"std":484.0},"Windspeed_Max_kmh":{"mean":11.216,"std":1.006},"Humidity_Max_pct":{"mean":94.870,"std":1.385},"Humidity_Min_pct":{"mean":58.698,"std":2.662},"Evapotranspiration_mm":{"mean":1239.4,"std":62.8},"Solar_Radiation_MJm2":{"mean":5878.5,"std":225.2},"Rainy_Days":{"mean":173.8,"std":18.1},"Fertilizer_kg_per_ha":{"mean":50.9,"std":4.9},"Soil_Type":{"Red Laterite":0.5,"Alluvial":0.5},"Irrigation_Type":{"Rainfed":0.533,"Canal":0.325,"Drip":0.142},"Season":{"Kharif":1.0},"avg_yield":0.742},"Cotton(lint)":{"Temp_Mean_C":{"mean":24.581,"std":0.367},"Annual_Rainfall_mm":{"mean":1964.1,"std":482.8},"Windspeed_Max_kmh":{"mean":11.204,"std":1.002},"Humidity_Max_pct":{"mean":94.880,"std":1.386},"Humidity_Min_pct":{"mean":58.725,"std":2.656},"Evapotranspiration_mm":{"mean":1238.2,"std":61.5},"Solar_Radiation_MJm2":{"mean":5874.1,"std":220.8},"Rainy_Days":{"mean":173.9,"std":18.1},"Fertilizer_kg_per_ha":{"mean":91.8,"std":7.2},"Soil_Type":{"Red Laterite":0.504,"Alluvial":0.496},"Irrigation_Type":{"Rainfed":0.538,"Canal":0.328,"Drip":0.134},"Season":{"Kharif":1.0},"avg_yield":1.446},"Cowpea(Lobia)":{"Temp_Mean_C":{"mean":24.531,"std":0.399},"Annual_Rainfall_mm":{"mean":2042.8,"std":525.6},"Windspeed_Max_kmh":{"mean":11.606,"std":0.790},"Humidity_Max_pct":{"mean":95.533,"std":1.308},"Humidity_Min_pct":{"mean":58.963,"std":3.466},"Evapotranspiration_mm":{"mean":1230.8,"std":79.9},"Solar_Radiation_MJm2":{"mean":5831.6,"std":280.1},"Rainy_Days":{"mean":178.3,"std":17.2},"Fertilizer_kg_per_ha":{"mean":39.3,"std":4.2},"Soil_Type":{"Red Laterite":0.5,"Alluvial":0.5},"Irrigation_Type":{"Rainfed":0.484,"Canal":0.359,"Drip":0.156},"Season":{"Kharif":1.0},"avg_yield":0.760},"Gram":{"Temp_Mean_C":{"mean":24.576,"std":0.378},"Annual_Rainfall_mm":{"mean":1988.6,"std":486.9},"Windspeed_Max_kmh":{"mean":11.184,"std":1.013},"Humidity_Max_pct":{"mean":94.971,"std":1.360},"Humidity_Min_pct":{"mean":58.732,"std":2.772},"Evapotranspiration_mm":{"mean":1237.3,"std":64.4},"Solar_Radiation_MJm2":{"mean":5874.5,"std":230.0},"Rainy_Days":{"mean":175.1,"std":17.3},"Fertilizer_kg_per_ha":{"mean":35.1,"std":4.0},"Soil_Type":{"Red Laterite":0.528,"Alluvial":0.472},"Irrigation_Type":{"Canal":0.417,"Rainfed":0.370,"Drip":0.213},"Season":{"Rabi":1.0},"avg_yield":0.756},"Groundnut":{"Temp_Mean_C":{"mean":24.586,"std":0.371},"Annual_Rainfall_mm":{"mean":1958.0,"std":491.1},"Windspeed_Max_kmh":{"mean":11.177,"std":1.000},"Humidity_Max_pct":{"mean":94.863,"std":1.385},"Humidity_Min_pct":{"mean":58.741,"std":2.687},"Evapotranspiration_mm":{"mean":1238.6,"std":62.6},"Solar_Radiation_MJm2":{"mean":5878.0,"std":224.0},"Rainy_Days":{"mean":173.5,"std":18.0},"Fertilizer_kg_per_ha":{"mean":57.7,"std":5.5},"Soil_Type":{"Red Laterite":0.509,"Alluvial":0.491},"Irrigation_Type":{"Rainfed":0.504,"Canal":0.329,"Drip":0.167},"Season":{"Kharif":0.518,"Rabi":0.482},"avg_yield":1.240},"Jowar":{"Temp_Mean_C":{"mean":24.333,"std":0.318},"Annual_Rainfall_mm":{"mean":2008.2,"std":529.5},"Windspeed_Max_kmh":{"mean":11.542,"std":0.677},"Humidity_Max_pct":{"mean":95.911,"std":1.228},"Humidity_Min_pct":{"mean":59.541,"std":2.662},"Evapotranspiration_mm":{"mean":1213.3,"std":53.9},"Solar_Radiation_MJm2":{"mean":5786.4,"std":195.5},"Rainy_Days":{"mean":177.7,"std":15.6},"Fertilizer_kg_per_ha":{"mean":49.0,"std":4.4},"Soil_Type":{"Red Laterite":0.5,"Alluvial":0.5},"Irrigation_Type":{"Rainfed":0.417,"Canal":0.375,"Drip":0.208},"Season":{"Kharif":0.646,"Rabi":0.354},"avg_yield":0.809},"Jute":{"Temp_Mean_C":{"mean":24.585,"std":0.369},"Annual_Rainfall_mm":{"mean":1958.9,"std":484.0},"Windspeed_Max_kmh":{"mean":11.216,"std":1.006},"Humidity_Max_pct":{"mean":94.870,"std":1.385},"Humidity_Min_pct":{"mean":58.698,"std":2.662},"Evapotranspiration_mm":{"mean":1239.4,"std":62.8},"Solar_Radiation_MJm2":{"mean":5878.5,"std":225.2},"Rainy_Days":{"mean":173.8,"std":18.1},"Fertilizer_kg_per_ha":{"mean":78.9,"std":6.0},"Soil_Type":{"Red Laterite":0.5,"Alluvial":0.5},"Irrigation_Type":{"Rainfed":0.55,"Canal":0.3,"Drip":0.15},"Season":{"Kharif":1.0},"avg_yield":8.619},"Khesari":{"Temp_Mean_C":{"mean":24.524,"std":0.418},"Annual_Rainfall_mm":{"mean":1757.1,"std":318.4},"Windspeed_Max_kmh":{"mean":11.540,"std":0.559},"Humidity_Max_pct":{"mean":95.502,"std":1.364},"Humidity_Min_pct":{"mean":56.917,"std":3.442},"Evapotranspiration_mm":{"mean":1269.7,"std":76.3},"Solar_Radiation_MJm2":{"mean":5975.2,"std":259.8},"Rainy_Days":{"mean":169.6,"std":13.4},"Fertilizer_kg_per_ha":{"mean":35.5,"std":6.4},"Soil_Type":{"Red Laterite":0.571,"Alluvial":0.429},"Irrigation_Type":{"Rainfed":0.571,"Canal":0.393,"Drip":0.036},"Season":{"Rabi":1.0},"avg_yield":0.789},"Linseed":{"Temp_Mean_C":{"mean":24.295,"std":0.348},"Annual_Rainfall_mm":{"mean":2657.5,"std":313.5},"Windspeed_Max_kmh":{"mean":11.410,"std":0.617},"Humidity_Max_pct":{"mean":96.547,"std":0.993},"Humidity_Min_pct":{"mean":62.383,"std":1.528},"Evapotranspiration_mm":{"mean":1156.2,"std":48.3},"Solar_Radiation_MJm2":{"mean":5614.9,"std":211.6},"Rainy_Days":{"mean":195.0,"std":12.9},"Fertilizer_kg_per_ha":{"mean":45.8,"std":6.6},"Soil_Type":{"Red Laterite":0.583,"Alluvial":0.417},"Irrigation_Type":{"Canal":0.583,"Drip":0.25,"Rainfed":0.167},"Season":{"Rabi":1.0},"avg_yield":0.697},"Maize":{"Temp_Mean_C":{"mean":24.566,"std":0.379},"Annual_Rainfall_mm":{"mean":1988.1,"std":499.1},"Windspeed_Max_kmh":{"mean":11.351,"std":0.953},"Humidity_Max_pct":{"mean":95.101,"std":1.392},"Humidity_Min_pct":{"mean":58.790,"std":2.960},"Evapotranspiration_mm":{"mean":1236.4,"std":69.1},"Solar_Radiation_MJm2":{"mean":5862.2,"std":245.9},"Rainy_Days":{"mean":175.3,"std":17.9},"Fertilizer_kg_per_ha":{"mean":90.1,"std":8.2},"Soil_Type":{"Red Laterite":0.5,"Alluvial":0.5},"Irrigation_Type":{"Rainfed":0.505,"Canal":0.321,"Drip":0.174},"Season":{"Kharif":0.652,"Rabi":0.348},"avg_yield":1.674},"Masoor":{"Temp_Mean_C":{"mean":24.581,"std":0.368},"Annual_Rainfall_mm":{"mean":1959.8,"std":486.0},"Windspeed_Max_kmh":{"mean":11.199,"std":0.994},"Humidity_Max_pct":{"mean":94.883,"std":1.383},"Humidity_Min_pct":{"mean":58.710,"std":2.670},"Evapotranspiration_mm":{"mean":1239.0,"std":62.9},"Solar_Radiation_MJm2":{"mean":5878.3,"std":226.1},"Rainy_Days":{"mean":173.7,"std":18.1},"Fertilizer_kg_per_ha":{"mean":37.4,"std":3.7},"Soil_Type":{"Red Laterite":0.504,"Alluvial":0.496},"Irrigation_Type":{"Canal":0.387,"Rainfed":0.378,"Drip":0.235},"Season":{"Rabi":1.0},"avg_yield":0.709},"Mesta":{"Temp_Mean_C":{"mean":24.585,"std":0.369},"Annual_Rainfall_mm":{"mean":1958.9,"std":484.0},"Windspeed_Max_kmh":{"mean":11.216,"std":1.006},"Humidity_Max_pct":{"mean":94.870,"std":1.385},"Humidity_Min_pct":{"mean":58.698,"std":2.662},"Evapotranspiration_mm":{"mean":1239.4,"std":62.8},"Solar_Radiation_MJm2":{"mean":5878.5,"std":225.2},"Rainy_Days":{"mean":173.8,"std":18.1},"Fertilizer_kg_per_ha":{"mean":60.0,"std":5.6},"Soil_Type":{"Red Laterite":0.5,"Alluvial":0.5},"Irrigation_Type":{"Rainfed":0.542,"Canal":0.317,"Drip":0.142},"Season":{"Kharif":1.0},"avg_yield":8.277},"Moong(Green Gram)":{"Temp_Mean_C":{"mean":24.584,"std":0.367},"Annual_Rainfall_mm":{"mean":1960.4,"std":483.1},"Windspeed_Max_kmh":{"mean":11.208,"std":1.004},"Humidity_Max_pct":{"mean":94.872,"std":1.385},"Humidity_Min_pct":{"mean":58.705,"std":2.657},"Evapotranspiration_mm":{"mean":1239.1,"std":62.0},"Solar_Radiation_MJm2":{"mean":5877.5,"std":222.2},"Rainy_Days":{"mean":173.8,"std":18.0},"Fertilizer_kg_per_ha":{"mean":38.1,"std":4.4},"Soil_Type":{"Red Laterite":0.5,"Alluvial":0.5},"Irrigation_Type":{"Canal":0.454,"Rainfed":0.395,"Drip":0.151},"Season":{"Rabi":0.504,"Kharif":0.496},"avg_yield":0.599},"Other Kharif pulses":{"Temp_Mean_C":{"mean":24.554,"std":0.359},"Annual_Rainfall_mm":{"mean":1966.0,"std":479.3},"Windspeed_Max_kmh":{"mean":11.006,"std":1.025},"Humidity_Max_pct":{"mean":94.682,"std":1.414},"Humidity_Min_pct":{"mean":59.076,"std":1.904},"Evapotranspiration_mm":{"mean":1231.8,"std":47.8},"Solar_Radiation_MJm2":{"mean":5862.4,"std":175.6},"Rainy_Days":{"mean":173.2,"std":18.2},"Fertilizer_kg_per_ha":{"mean":39.8,"std":6.2},"Soil_Type":{"Alluvial":0.524,"Red Laterite":0.476},"Irrigation_Type":{"Rainfed":0.476,"Canal":0.369,"Drip":0.155},"Season":{"Kharif":1.0},"avg_yield":0.767},"Other Rabi pulses":{"Temp_Mean_C":{"mean":24.583,"std":0.379},"Annual_Rainfall_mm":{"mean":1949.1,"std":466.1},"Windspeed_Max_kmh":{"mean":11.221,"std":0.999},"Humidity_Max_pct":{"mean":94.897,"std":1.403},"Humidity_Min_pct":{"mean":58.538,"std":2.692},"Evapotranspiration_mm":{"mean":1242.7,"std":63.0},"Solar_Radiation_MJm2":{"mean":5890.7,"std":223.3},"Rainy_Days":{"mean":173.6,"std":17.3},"Fertilizer_kg_per_ha":{"mean":40.2,"std":3.9},"Soil_Type":{"Red Laterite":0.509,"Alluvial":0.491},"Irrigation_Type":{"Rainfed":0.438,"Canal":0.402,"Drip":0.161},"Season":{"Rabi":0.973,"Kharif":0.027},"avg_yield":0.846},"Peas & beans (Pulses)":{"Temp_Mean_C":{"mean":24.585,"std":0.369},"Annual_Rainfall_mm":{"mean":1958.9,"std":484.0},"Windspeed_Max_kmh":{"mean":11.216,"std":1.006},"Humidity_Max_pct":{"mean":94.870,"std":1.385},"Humidity_Min_pct":{"mean":58.698,"std":2.662},"Evapotranspiration_mm":{"mean":1239.4,"std":62.8},"Solar_Radiation_MJm2":{"mean":5878.5,"std":225.2},"Rainy_Days":{"mean":173.8,"std":18.1},"Fertilizer_kg_per_ha":{"mean":45.5,"std":3.9},"Soil_Type":{"Red Laterite":0.5,"Alluvial":0.5},"Irrigation_Type":{"Rainfed":0.4,"Canal":0.375,"Drip":0.225},"Season":{"Rabi":1.0},"avg_yield":0.822},"Rapeseed &Mustard":{"Temp_Mean_C":{"mean":24.585,"std":0.369},"Annual_Rainfall_mm":{"mean":1958.9,"std":484.0},"Windspeed_Max_kmh":{"mean":11.216,"std":1.006},"Humidity_Max_pct":{"mean":94.870,"std":1.385},"Humidity_Min_pct":{"mean":58.698,"std":2.662},"Evapotranspiration_mm":{"mean":1239.4,"std":62.8},"Solar_Radiation_MJm2":{"mean":5878.5,"std":225.2},"Rainy_Days":{"mean":173.8,"std":18.1},"Fertilizer_kg_per_ha":{"mean":70.2,"std":5.7},"Soil_Type":{"Red Laterite":0.5,"Alluvial":0.5},"Irrigation_Type":{"Canal":0.408,"Rainfed":0.375,"Drip":0.217},"Season":{"Rabi":1.0},"avg_yield":0.808},"Rice":{"Temp_Mean_C":{"mean":24.551,"std":0.391},"Annual_Rainfall_mm":{"mean":1985.8,"std":503.5},"Windspeed_Max_kmh":{"mean":11.490,"std":0.889},"Humidity_Max_pct":{"mean":95.260,"std":1.390},"Humidity_Min_pct":{"mean":58.705,"std":3.172},"Evapotranspiration_mm":{"mean":1237.7,"std":73.6},"Solar_Radiation_MJm2":{"mean":5862.7,"std":259.6},"Rainy_Days":{"mean":176.1,"std":17.7},"Fertilizer_kg_per_ha":{"mean":125.0,"std":14.8},"Soil_Type":{"Red Laterite":0.502,"Alluvial":0.498},"Irrigation_Type":{"Rainfed":0.495,"Canal":0.332,"Drip":0.173},"Season":{"Kharif":0.407,"Summer":0.214,"Autumn":0.190,"Winter":0.190},"avg_yield":2.573},"Sesamum":{"Temp_Mean_C":{"mean":24.585,"std":0.369},"Annual_Rainfall_mm":{"mean":1958.9,"std":484.0},"Windspeed_Max_kmh":{"mean":11.216,"std":1.006},"Humidity_Max_pct":{"mean":94.870,"std":1.385},"Humidity_Min_pct":{"mean":58.698,"std":2.662},"Evapotranspiration_mm":{"mean":1239.4,"std":62.8},"Solar_Radiation_MJm2":{"mean":5878.5,"std":225.2},"Rainy_Days":{"mean":173.8,"std":18.1},"Fertilizer_kg_per_ha":{"mean":47.7,"std":5.1},"Soil_Type":{"Red Laterite":0.5,"Alluvial":0.5},"Irrigation_Type":{"Rainfed":0.458,"Canal":0.35,"Drip":0.192},"Season":{"Kharif":1.0},"avg_yield":0.600},"Small millets":{"Temp_Mean_C":{"mean":24.547,"std":0.396},"Annual_Rainfall_mm":{"mean":1961.2,"std":473.3},"Windspeed_Max_kmh":{"mean":11.750,"std":0.728},"Humidity_Max_pct":{"mean":95.513,"std":1.294},"Humidity_Min_pct":{"mean":58.426,"std":3.255},"Evapotranspiration_mm":{"mean":1242.0,"std":74.7},"Solar_Radiation_MJm2":{"mean":5867.5,"std":261.8},"Rainy_Days":{"mean":177.6,"std":16.8},"Fertilizer_kg_per_ha":{"mean":46.4,"std":4.3},"Soil_Type":{"Red Laterite":0.507,"Alluvial":0.493},"Irrigation_Type":{"Rainfed":0.479,"Canal":0.408,"Drip":0.113},"Season":{"Kharif":0.789,"Rabi":0.211},"avg_yield":0.832},"Soyabean":{"Temp_Mean_C":{"mean":24.337,"std":0.328},"Annual_Rainfall_mm":{"mean":2225.2,"std":540.7},"Windspeed_Max_kmh":{"mean":11.471,"std":0.731},"Humidity_Max_pct":{"mean":95.969,"std":1.213},"Humidity_Min_pct":{"mean":60.707,"std":2.449},"Evapotranspiration_mm":{"mean":1186.9,"std":55.5},"Solar_Radiation_MJm2":{"mean":5679.0,"std":206.8},"Rainy_Days":{"mean":184.4,"std":16.8},"Fertilizer_kg_per_ha":{"mean":53.2,"std":4.5},"Soil_Type":{"Red Laterite":0.509,"Alluvial":0.491},"Irrigation_Type":{"Canal":0.418,"Rainfed":0.418,"Drip":0.164},"Season":{"Rabi":0.527,"Kharif":0.473},"avg_yield":0.783},"Sugarcane":{"Temp_Mean_C":{"mean":24.585,"std":0.369},"Annual_Rainfall_mm":{"mean":1958.9,"std":484.0},"Windspeed_Max_kmh":{"mean":11.216,"std":1.006},"Humidity_Max_pct":{"mean":94.870,"std":1.385},"Humidity_Min_pct":{"mean":58.698,"std":2.662},"Evapotranspiration_mm":{"mean":1239.4,"std":62.8},"Solar_Radiation_MJm2":{"mean":5878.5,"std":225.2},"Rainy_Days":{"mean":173.8,"std":18.1},"Fertilizer_kg_per_ha":{"mean":172.9,"std":16.3},"Soil_Type":{"Red Laterite":0.5,"Alluvial":0.5},"Irrigation_Type":{"Drip":0.4,"Rainfed":0.358,"Canal":0.242},"Season":{"Whole Year":1.0},"avg_yield":53.139},"Urad":{"Temp_Mean_C":{"mean":24.584,"std":0.368},"Annual_Rainfall_mm":{"mean":1961.9,"std":481.8},"Windspeed_Max_kmh":{"mean":11.215,"std":1.006},"Humidity_Max_pct":{"mean":94.880,"std":1.375},"Humidity_Min_pct":{"mean":58.703,"std":2.661},"Evapotranspiration_mm":{"mean":1239.2,"std":62.7},"Solar_Radiation_MJm2":{"mean":5877.9,"std":225.0},"Rainy_Days":{"mean":173.9,"std":18.0},"Fertilizer_kg_per_ha":{"mean":39.0,"std":4.1},"Soil_Type":{"Red Laterite":0.502,"Alluvial":0.498},"Irrigation_Type":{"Rainfed":0.473,"Canal":0.368,"Drip":0.159},"Season":{"Kharif":0.502,"Rabi":0.498},"avg_yield":0.657},"Wheat":{"Temp_Mean_C":{"mean":24.582,"std":0.367},"Annual_Rainfall_mm":{"mean":1962.8,"std":499.8},"Windspeed_Max_kmh":{"mean":11.168,"std":1.029},"Humidity_Max_pct":{"mean":94.808,"std":1.412},"Humidity_Min_pct":{"mean":58.917,"std":2.458},"Evapotranspiration_mm":{"mean":1235.8,"std":61.6},"Solar_Radiation_MJm2":{"mean":5869.8,"std":221.3},"Rainy_Days":{"mean":173.7,"std":18.6},"Fertilizer_kg_per_ha":{"mean":107.9,"std":7.7},"Soil_Type":{"Alluvial":0.509,"Red Laterite":0.491},"Irrigation_Type":{"Rainfed":0.368,"Canal":0.340,"Drip":0.292},"Season":{"Rabi":1.0},"avg_yield":2.086},"other oilseeds":{"Temp_Mean_C":{"mean":24.212,"std":0.177},"Annual_Rainfall_mm":{"mean":1749.5,"std":345.4},"Windspeed_Max_kmh":{"mean":11.322,"std":0.489},"Humidity_Max_pct":{"mean":95.741,"std":1.441},"Humidity_Min_pct":{"mean":59.646,"std":1.177},"Evapotranspiration_mm":{"mean":1216.1,"std":17.8},"Solar_Radiation_MJm2":{"mean":5805.1,"std":55.3},"Rainy_Days":{"mean":173.4,"std":4.5},"Fertilizer_kg_per_ha":{"mean":51.5,"std":8.5},"Soil_Type":{"Red Laterite":0.6,"Alluvial":0.4},"Irrigation_Type":{"Drip":0.4,"Rainfed":0.4,"Canal":0.2},"Season":{"Rabi":1.0},"avg_yield":0.756}};
+
+const WEIGHTS = {Fertilizer_kg_per_ha:3.0,Annual_Rainfall_mm:1.5,Temp_Mean_C:1.2,Humidity_Max_pct:1.0,Humidity_Min_pct:1.0,Evapotranspiration_mm:1.0,Solar_Radiation_MJm2:1.0,Rainy_Days:1.0,Windspeed_Max_kmh:0.8};
+const PEST_PENALTY = {Low:1.0,Medium:0.85,High:0.6};
+
+// ── SLIDER BINDINGS ───────────────────────────────────────────────────────────
+const sliders = [
+  ['temp','tempv', v => v+' °C'],
+  ['rain','rainv', v => v+' mm'],
+  ['hummax','hummaxv', v => v+' %'],
+  ['hummin','humminv', v => v+' %'],
+  ['solar','solarv', v => v+' MJ/m²'],
+  ['rainy','rainyv', v => v+' days'],
+  ['et','etv', v => v+' mm'],
+  ['wind','windv', v => v+' km/h'],
+  ['fert','fertv', v => v+' kg/ha'],
+];
+sliders.forEach(([id, vid, fmt]) => {
+  const el = document.getElementById(id);
+  const vl = document.getElementById(vid);
+  const upd = () => vl.textContent = fmt(parseFloat(el.value).toFixed(el.step < 1 ? 1 : 0));
+  el.addEventListener('input', upd);
+  upd();
+});
+
+// ── CHIP GROUPS ───────────────────────────────────────────────────────────────
+document.querySelectorAll('.chips').forEach(group => {
+  group.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      group.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+});
+
+function getChip(id) {
+  return document.querySelector(`#${id} .chip.active`)?.dataset.val || '';
+}
+
+// ── SCORING ───────────────────────────────────────────────────────────────────
+function gaussian(val, mean, std) {
+  return Math.exp(-0.5 * Math.pow((val - mean) / std, 2));
+}
+
+function rankCrops(user) {
+  const scores = [];
+  for (const [crop, p] of Object.entries(PROFILES)) {
+    let num = 0, wsum = 0;
+    for (const [feat, wt] of Object.entries(WEIGHTS)) {
+      if (user[feat] !== undefined && p[feat]) {
+        num  += wt * gaussian(user[feat], p[feat].mean, p[feat].std);
+        wsum += wt;
+      }
+    }
+    num = wsum > 0 ? num / wsum : 0;
+    const soil    = (p.Soil_Type?.[user.Soil_Type]        || 0);
+    const irr     = (p.Irrigation_Type?.[user.Irrigation_Type] || 0);
+    const season  = (p.Season?.[user.Season]              || 0);
+    const penalty = PEST_PENALTY[user.Pest_Disease_Incidence] || 1.0;
+    const score   = (num*0.50 + soil*0.12 + irr*0.12 + season*0.26) * penalty;
+    scores.push({ crop, score, season_fit: season, avg_yield: p.avg_yield });
+  }
+  scores.sort((a,b) => b.score - a.score);
+  const maxS = scores[0].score || 1;
+  scores.forEach(s => s.pct = Math.round(s.score / maxS * 100));
+  return scores.slice(0, 7);
+}
+
+// ── BACKEND STATUS ────────────────────────────────────────────────────────────
+const BACKEND = 'http://localhost:5000';
+let backendOnline = false;
+
+async function checkBackend() {
+  try {
+    const r = await fetch(BACKEND + '/health', { signal: AbortSignal.timeout(800) });
+    backendOnline = r.ok;
+  } catch { backendOnline = false; }
+  updateStatusDot();
+}
+
+function updateStatusDot() {
+  const dot = document.getElementById('status-dot');
+  const lbl = document.getElementById('status-label');
+  if (!dot) return;
+  if (backendOnline) {
+    dot.style.background = '#4a7c59';
+    lbl.textContent = 'Model predictions live';
+  } else {
+    dot.style.background = '#c9922a';
+    lbl.textContent = 'Backend offline — showing hist. avg';
+  }
+}
+
+// Check on load and every 5s
+checkBackend();
+setInterval(checkBackend, 5000);
+
+async function fetchYield(crop, district, user) {
+  if (!backendOnline) return { yield: null, source: 'hist_avg' };
+  try {
+    const res = await fetch(BACKEND + '/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        crop,
+        district,
+        'Fertilizer_kg_per_ha':  user.Fertilizer_kg_per_ha,
+        'Area (Hectare)':        user['Area (Hectare)'] || 500,
+        'Pest_Disease_Incidence': user.Pest_Disease_Incidence,
+      }),
+      signal: AbortSignal.timeout(3000),
+    });
+    return await res.json();
+  } catch { return { yield: null, source: 'hist_avg' }; }
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+async function runRecommender() {
+  const btn = document.querySelector('.run-btn');
+  btn.classList.add('loading');
+  btn.textContent = 'Running…';
+
+  const user = {
+    Temp_Mean_C:           parseFloat(document.getElementById('temp').value),
+    Annual_Rainfall_mm:    parseFloat(document.getElementById('rain').value),
+    Humidity_Max_pct:      parseFloat(document.getElementById('hummax').value),
+    Humidity_Min_pct:      parseFloat(document.getElementById('hummin').value),
+    Solar_Radiation_MJm2:  parseFloat(document.getElementById('solar').value),
+    Rainy_Days:            parseFloat(document.getElementById('rainy').value),
+    Evapotranspiration_mm: parseFloat(document.getElementById('et').value),
+    Windspeed_Max_kmh:     parseFloat(document.getElementById('wind').value),
+    Fertilizer_kg_per_ha:  parseFloat(document.getElementById('fert').value),
+    Soil_Type:             getChip('soil-chips'),
+    Irrigation_Type:       getChip('irr-chips'),
+    Season:                getChip('season-chips'),
+    Pest_Disease_Incidence: getChip('pest-chips'),
+  };
+  const district = document.getElementById('district').value;
+  const ranked   = rankCrops(user);
+
+  // Fetch all yields in parallel
+  const yieldResults = await Promise.all(
+    ranked.map(r => fetchYield(r.crop, district, user))
+  );
+
+  document.getElementById('empty-state').style.display = 'none';
+  const container = document.getElementById('results-container');
+  container.style.display = 'block';
+  document.getElementById('results-meta').textContent =
+    district + ' · ' + user.Season + ' · ' + user.Soil_Type;
+
+  const grid = document.getElementById('results-grid');
+  grid.innerHTML = '';
+
+  ranked.forEach((r, i) => {
+    const isTop = i === 0;
+    const yRes  = yieldResults[i];
+
+    // Use model prediction if available, otherwise hist avg
+    const yieldNum = (yRes.source === 'model' && yRes.yield !== null)
+      ? yRes.yield
+      : r.avg_yield;
+    const isModel  = yRes.source === 'model' && yRes.yield !== null;
+
+    const yieldStr = yieldNum >= 10
+      ? yieldNum.toFixed(1) + ' T/ha'
+      : yieldNum.toFixed(2) + ' T/ha';
+
+    const sourceTag = isModel
+      ? '<span class="model-tag">XGBoost</span>'
+      : '<span class="hist-tag">hist. avg</span>';
+
+    let seasonClass, seasonLabel;
+    if      (r.season_fit > 0.5) { seasonClass='season-good';   seasonLabel='✓ '+user.Season; }
+    else if (r.season_fit > 0)   { seasonClass='season-partial'; seasonLabel='~ partial'; }
+    else                          { seasonClass='season-off';     seasonLabel='✗ off-season'; }
+
+    const card = document.createElement('div');
+    card.className = 'crop-card' + (isTop ? ' rank-1' : '');
+    card.innerHTML = `
+      <div class="rank-badge">${i+1}</div>
+      <div class="crop-info">
+        <div class="crop-name">
+          ${r.crop}
+          ${isTop ? '<span class="best-tag">Best match</span>' : ''}
+          ${sourceTag}
+        </div>
+        <div class="suit-bar-wrap">
+          <div class="suit-bar" style="width:0%"></div>
+        </div>
+        <div class="crop-tags">
+          <span class="tag ${seasonClass}">${seasonLabel}</span>
+          <span class="tag">${user.Soil_Type}</span>
+          <span class="tag">${user.Irrigation_Type}</span>
+        </div>
+      </div>
+      <div class="crop-right">
+        <div class="suit-pct">${r.pct}%</div>
+        <div class="yield-val">${yieldStr}</div>
+      </div>`;
+    grid.appendChild(card);
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        card.querySelector('.suit-bar').style.width = r.pct + '%';
+      }, 60 + i * 50);
+    });
+  });
+
+  btn.classList.remove('loading');
+  btn.textContent = 'Get Recommendations';
+}
+</script>
+</body>
+</html>

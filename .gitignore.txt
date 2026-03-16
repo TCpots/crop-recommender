@@ -1,0 +1,8 @@
+yield_model.pkl
+scaler.pkl
+feat_cols.pkl
+crop_stats.json
+merged_crop_weather_joined.xlsx
+__pycache__/
+*.pyc
+.vscode/
